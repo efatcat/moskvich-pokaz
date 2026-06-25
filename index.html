@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Soobaro Out Black — 3D-симулятор</title>
+    <title>Moskvich Pokaz</title>
     <style>
         * {
             margin: 0;
@@ -103,42 +103,72 @@
             opacity: 0.7;
         }
 
-        #switchBtn {
+        #carSelector {
             position: absolute;
             top: 80px;
             right: 20px;
             z-index: 10;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(10px);
-            padding: 12px 20px;
-            border-radius: 12px;
+            padding: 16px;
+            border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.08);
-            color: white;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.3s;
-            pointer-events: auto;
-            min-width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 180px;
         }
-        #switchBtn:hover {
-            background: rgba(255, 107, 53, 0.3);
+        #carSelector h4 {
+            color: #888;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        .car-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid transparent;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            font-weight: 400;
+        }
+        .car-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .car-btn.active {
+            background: rgba(255, 107, 53, 0.2);
             border-color: #ff6b35;
+        }
+        .car-btn .emoji {
+            margin-right: 8px;
         }
 
         @media (max-width: 768px) {
             #hud { padding: 8px 16px; min-width: auto; width: 90%; bottom: 16px; }
             #hud .speed { font-size: 1.5rem; }
             #controls-hint { font-size: 0.6rem; padding: 6px 14px; white-space: normal; max-width: 90%; top: 12px; }
-            #switchBtn { top: 70px; right: 10px; padding: 8px 12px; font-size: 0.7rem; min-width: 120px; }
+            #carSelector { top: 70px; right: 10px; padding: 12px; min-width: 140px; }
+            .car-btn { font-size: 0.75rem; padding: 6px 10px; }
         }
     </style>
 </head>
 <body>
 
-    <button id="switchBtn">🚗 Следующая машина</button>
+    <div id="carSelector">
+        <h4>🚗 Выбор машины</h4>
+        <button class="car-btn active" data-car="subaru">🚙 Soobaro Out Black</button>
+        <button class="car-btn" data-car="bmw">🚗 BEEMWA 22</button>
+        <button class="car-btn" data-car="nissan">🚘 Neasun Loral 2rbo</button>
+    </div>
 
     <div id="controls-hint">
-        <strong>W</strong> — газ &nbsp;·&nbsp; <strong>S</strong> — назад &nbsp;·&nbsp; <strong>A/D</strong> — руль &nbsp;·&nbsp; <strong>Пробел</strong> — ручник
+        <strong>W / ↑</strong> — вперёд &nbsp;·&nbsp; <strong>S / ↓</strong> — назад &nbsp;·&nbsp; <strong>A / ←</strong> &nbsp;<strong>D / →</strong> — руль &nbsp;·&nbsp; <strong>Пробел</strong> — ручник
     </div>
 
     <div id="hud">
@@ -149,7 +179,7 @@
 
     <div id="loading">
         <div class="spinner"></div>
-        <p id="loadStatus">Загрузка Soobaro Out Black...</p>
+        <p id="loadStatus">Загрузка...</p>
     </div>
 
     <script type="importmap">
@@ -170,6 +200,7 @@
         // --------------------------------------------------------------
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 40, 80);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 3, 5);
@@ -184,7 +215,7 @@
         document.body.appendChild(renderer.domElement);
 
         // --------------------------------------------------------------
-        // 2. ДНЕВНОЕ ОСВЕЩЕНИЕ
+        // 2. ОСВЕЩЕНИЕ
         // --------------------------------------------------------------
         const sunLight = new THREE.DirectionalLight(0xffeedd, 2.5);
         sunLight.position.set(10, 15, 8);
@@ -192,11 +223,11 @@
         sunLight.shadow.mapSize.width = 4096;
         sunLight.shadow.mapSize.height = 4096;
         sunLight.shadow.camera.near = 0.1;
-        sunLight.shadow.camera.far = 50;
-        sunLight.shadow.camera.left = -20;
-        sunLight.shadow.camera.right = 20;
-        sunLight.shadow.camera.top = 20;
-        sunLight.shadow.camera.bottom = -20;
+        sunLight.shadow.camera.far = 60;
+        sunLight.shadow.camera.left = -30;
+        sunLight.shadow.camera.right = 30;
+        sunLight.shadow.camera.top = 30;
+        sunLight.shadow.camera.bottom = -30;
         scene.add(sunLight);
 
         const fillLight = new THREE.DirectionalLight(0x88ccff, 0.8);
@@ -206,65 +237,166 @@
         const ambientLight = new THREE.AmbientLight(0x88bbdd, 0.8);
         scene.add(ambientLight);
 
-        const sunSphere = new THREE.Mesh(
-            new THREE.SphereGeometry(0.5, 16, 16),
-            new THREE.MeshBasicMaterial({ color: 0xffff88 })
-        );
-        sunSphere.position.copy(sunLight.position);
-        sunSphere.position.multiplyScalar(2);
-        scene.add(sunSphere);
+        // --------------------------------------------------------------
+        // 3. ГОРОД
+        // --------------------------------------------------------------
+        // --- Дороги ---
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.9 });
+        const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 });
 
-        // --------------------------------------------------------------
-        // 3. ПОЛ
-        // --------------------------------------------------------------
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        
-        ctx.fillStyle = '#4a8c3f';
-        ctx.fillRect(0, 0, 512, 512);
-        
-        for (let i = 0; i < 30000; i++) {
-            const x = Math.random() * 512;
-            const y = Math.random() * 512;
-            const size = 1 + Math.random() * 3;
-            const green = 100 + Math.random() * 80;
-            ctx.fillStyle = `rgb(50, ${green}, 30)`;
-            ctx.fillRect(x, y, size, size);
+        // Главные дороги (крест)
+        const roadGeo = new THREE.PlaneGeometry(40, 6);
+        const road1 = new THREE.Mesh(roadGeo, roadMat);
+        road1.rotation.x = -Math.PI / 2;
+        road1.position.set(0, -0.47, 0);
+        road1.receiveShadow = true;
+        scene.add(road1);
+
+        const road2 = new THREE.Mesh(roadGeo, roadMat);
+        road2.rotation.x = -Math.PI / 2;
+        road2.rotation.z = Math.PI / 2;
+        road2.position.set(0, -0.47, 0);
+        road2.receiveShadow = true;
+        scene.add(road2);
+
+        // Разметка (центр)
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        for (let i = -18; i <= 18; i += 3) {
+            if (Math.abs(i) < 1) continue;
+            const line = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 1.5), lineMat);
+            line.rotation.x = -Math.PI / 2;
+            line.position.set(i, -0.46, 0);
+            scene.add(line);
+            
+            const line2 = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 1.5), lineMat);
+            line2.rotation.x = -Math.PI / 2;
+            line2.position.set(0, -0.46, i);
+            scene.add(line2);
         }
+
+        // --- Здания ---
+        function createBuilding(x, z, w, d, h, color) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: color, 
+                roughness: 0.6,
+                metalness: 0.1
+            });
+            const building = new THREE.Mesh(geo, mat);
+            building.position.set(x, h/2 - 0.5, z);
+            building.castShadow = true;
+            building.receiveShadow = true;
+            scene.add(building);
+
+            // Окна (простой эффект)
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0x88ccff });
+            for (let i = 0; i < Math.floor(w/2); i++) {
+                for (let j = 0; j < Math.floor(h/2); j++) {
+                    const window = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.6), windowMat);
+                    window.position.set(
+                        x - w/2 + 0.8 + i * 1.2,
+                        j * 1.2 + 0.6,
+                        z + d/2 + 0.01
+                    );
+                    scene.add(window);
+                    const window2 = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.6), windowMat);
+                    window2.position.set(
+                        x - w/2 + 0.8 + i * 1.2,
+                        j * 1.2 + 0.6,
+                        z - d/2 - 0.01
+                    );
+                    window2.rotation.y = Math.PI;
+                    scene.add(window2);
+                }
+            }
+        }
+
+        // Кварталы зданий
+        const buildingColors = [0x8B7355, 0xCD853F, 0xDEB887, 0xD2691E, 0xA0522D, 0x8B4513];
         
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(30, 30);
+        // Северо-восточный квартал
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const h = 1.5 + Math.random() * 3;
+                const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+                createBuilding(5 + i * 3, -5 - j * 3, 2 + Math.random() * 1, 2 + Math.random() * 1, h, color);
+            }
+        }
 
-        const groundGeo = new THREE.PlaneGeometry(100, 100);
-        const groundMat = new THREE.MeshStandardMaterial({
-            map: texture,
-            roughness: 0.8,
-            metalness: 0.0,
-        });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.5;
-        ground.receiveShadow = true;
-        scene.add(ground);
+        // Северо-западный квартал
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const h = 1.5 + Math.random() * 3;
+                const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+                createBuilding(-5 - i * 3, -5 - j * 3, 2 + Math.random() * 1, 2 + Math.random() * 1, h, color);
+            }
+        }
 
-        const gridHelper = new THREE.GridHelper(60, 30, 0x88dd88, 0x44aa44);
-        gridHelper.position.y = -0.48;
-        scene.add(gridHelper);
+        // Юго-восточный квартал
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const h = 1.5 + Math.random() * 3;
+                const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+                createBuilding(5 + i * 3, 5 + j * 3, 2 + Math.random() * 1, 2 + Math.random() * 1, h, color);
+            }
+        }
 
-        const markerGeo = new THREE.RingGeometry(0.4, 0.6, 32);
-        const markerMat = new THREE.MeshBasicMaterial({
-            color: 0xff6b35,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.3,
-        });
-        const marker = new THREE.Mesh(markerGeo, markerMat);
-        marker.rotation.x = -Math.PI / 2;
-        marker.position.y = -0.47;
-        scene.add(marker);
+        // Юго-западный квартал
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const h = 1.5 + Math.random() * 3;
+                const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+                createBuilding(-5 - i * 3, 5 + j * 3, 2 + Math.random() * 1, 2 + Math.random() * 1, h, color);
+            }
+        }
+
+        // Тротуары
+        const sideMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.9 });
+        for (let i = -20; i <= 20; i += 4) {
+            if (Math.abs(i) < 2) continue;
+            const s1 = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 38), sideMat);
+            s1.rotation.x = -Math.PI / 2;
+            s1.position.set(i, -0.46, 0);
+            scene.add(s1);
+            
+            const s2 = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 38), sideMat);
+            s2.rotation.x = -Math.PI / 2;
+            s2.position.set(0, -0.46, i);
+            scene.add(s2);
+        }
+
+        // Газоны
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x4a8c3f, roughness: 0.9 });
+        for (let i = -18; i <= 18; i += 8) {
+            for (let j = -18; j <= 18; j += 8) {
+                if (Math.abs(i) < 2 && Math.abs(j) < 2) continue;
+                const g = new THREE.Mesh(new THREE.PlaneGeometry(3, 3), grassMat);
+                g.rotation.x = -Math.PI / 2;
+                g.position.set(i, -0.47, j);
+                scene.add(g);
+            }
+        }
+
+        // Фонари
+        function createLamppost(x, z) {
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.8, roughness: 0.3 });
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.5), poleMat);
+            pole.position.set(x, 0.25, z);
+            scene.add(pole);
+            
+            const lampMat = new THREE.MeshStandardMaterial({ color: 0xffff88, emissive: 0xffff44, emissiveIntensity: 0.2 });
+            const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), lampMat);
+            lamp.position.set(x, 1.0, z);
+            scene.add(lamp);
+        }
+
+        for (let i = -16; i <= 16; i += 8) {
+            if (Math.abs(i) < 2) continue;
+            createLamppost(i, -2.5);
+            createLamppost(i, 2.5);
+            createLamppost(-2.5, i);
+            createLamppost(2.5, i);
+        }
 
         // --------------------------------------------------------------
         // 4. ЗАГРУЗКА МОДЕЛЕЙ
@@ -275,7 +407,7 @@
 
         let currentCar = null;
         let carLoaded = false;
-        let currentModelIndex = 0;
+        let currentModelId = 'subaru';
 
         const carState = {
             position: new THREE.Vector3(0, 0, 0),
@@ -283,6 +415,7 @@
             rotation: 0,
         };
 
+        // Параметры управления (исправленные)
         const ENGINE_FORCE = 0.04;
         const REVERSE_FORCE = 0.025;
         const MAX_SPEED = 0.5;
@@ -295,28 +428,18 @@
             a: false,
             d: false,
             space: false,
+            arrowup: false,
+            arrowdown: false,
+            arrowleft: false,
+            arrowright: false,
         };
 
-        // Список моделей
         const modelsList = [
-            {
-                id: 'subaru',
-                name: '🚙 Soobaro Out Black',
-                file: 'subaru_outback.glb'
-            },
-            {
-                id: 'bmw',
-                name: '🚗 BEEMWA 22',
-                file: 'bmw2002.glb'
-            },
-            {
-                id: 'nissan',
-                name: '🚘 Neasun Loral 2rbo',
-                file: 'nissan_laurel.glb'
-            }
+            { id: 'subaru', name: '🚙 Soobaro Out Black', file: 'subaru_outback.glb', rotation: 0 },
+            { id: 'bmw', name: '🚗 BEEMWA 22', file: 'bmw2002.glb', rotation: 0 },
+            { id: 'nissan', name: '🚘 Neasun Loral 2rbo', file: 'nissan_laurel.glb', rotation: Math.PI / 2 }
         ];
 
-        // Хранилище загруженных моделей
         const loadedModels = {};
 
         function loadModel(modelId, filePath) {
@@ -346,6 +469,9 @@
                         model.position.y = 0;
                         model.position.z = 0;
 
+                        // Поворот модели (для Nissan)
+                        model.rotation.y = modelInfo.rotation || 0;
+
                         model.traverse((child) => {
                             if (child.isMesh) {
                                 child.castShadow = true;
@@ -374,12 +500,10 @@
 
         async function init() {
             try {
-                // Загружаем все модели
                 for (const model of modelsList) {
                     try {
                         const modelObj = await loadModel(model.id, model.file);
                         loadedModels[model.id] = modelObj;
-                        // Прячем все кроме первой
                         if (model.id !== modelsList[0].id) {
                             modelObj.visible = false;
                         }
@@ -389,11 +513,10 @@
                     }
                 }
 
-                // Показываем первую модель
                 const firstModel = modelsList[0];
                 if (loadedModels[firstModel.id]) {
                     currentCar = loadedModels[firstModel.id];
-                    currentModelIndex = 0;
+                    currentModelId = firstModel.id;
                     carLoaded = true;
                     document.getElementById('modelNameDisplay').textContent = firstModel.name;
                 }
@@ -414,68 +537,75 @@
         init();
 
         // --------------------------------------------------------------
-        // 5. ПЕРЕКЛЮЧЕНИЕ МОДЕЛЕЙ
+        // 5. ВЫБОР МАШИНЫ
         // --------------------------------------------------------------
-        const switchBtn = document.getElementById('switchBtn');
+        document.querySelectorAll('.car-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.car;
+                if (!loadedModels[id]) return;
 
-        switchBtn.addEventListener('click', () => {
-            if (!carLoaded) return;
+                // Скрываем текущую
+                if (currentCar) {
+                    currentCar.visible = false;
+                }
 
-            // Скрываем текущую
-            const currentModelId = modelsList[currentModelIndex].id;
-            if (loadedModels[currentModelId]) {
-                loadedModels[currentModelId].visible = false;
-            }
-
-            // Переключаем на следующую
-            currentModelIndex = (currentModelIndex + 1) % modelsList.length;
-            const nextModel = modelsList[currentModelIndex];
-            
-            if (loadedModels[nextModel.id]) {
-                currentCar = loadedModels[nextModel.id];
+                // Показываем новую
+                currentCar = loadedModels[id];
                 currentCar.visible = true;
-                document.getElementById('modelNameDisplay').textContent = nextModel.name;
+                currentModelId = id;
                 
-                // Обновляем подсказку
-                const hint = document.querySelector('#controls-hint');
-                const modelEmoji = nextModel.id === 'subaru' ? '🚙' : nextModel.id === 'bmw' ? '🚗' : '🚘';
-                hint.innerHTML = 
-                    `<strong>W</strong> — газ &nbsp;·&nbsp; <strong>S</strong> — назад &nbsp;·&nbsp; <strong>A/D</strong> — руль &nbsp;·&nbsp; <strong>Пробел</strong> — ручник &nbsp;·&nbsp; ${modelEmoji} ${nextModel.name}`;
-                
+                // Обновляем активную кнопку
+                document.querySelectorAll('.car-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Обновляем название
+                const modelInfo = modelsList.find(m => m.id === id);
+                document.getElementById('modelNameDisplay').textContent = modelInfo.name;
+
                 // Сбрасываем позицию
                 carState.position.set(0, 0, 0);
                 carState.velocity.set(0, 0, 0);
                 carState.rotation = 0;
                 currentCar.position.set(0, 0, 0);
-                currentCar.rotation.y = 0;
-            }
+                currentCar.rotation.y = modelInfo.rotation || 0;
+            });
         });
 
         // --------------------------------------------------------------
-        // 6. УПРАВЛЕНИЕ
+        // 6. УПРАВЛЕНИЕ (исправленное)
         // --------------------------------------------------------------
         document.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
-            if (key === 'w' || key === 's' || key === 'a' || key === 'd') {
-                keys[key] = true;
-                e.preventDefault();
-            }
-            if (e.key === ' ') {
-                keys.space = true;
-                e.preventDefault();
-            }
+            
+            // WASD
+            if (key === 'w') { keys.w = true; e.preventDefault(); }
+            if (key === 's') { keys.s = true; e.preventDefault(); }
+            if (key === 'a') { keys.a = true; e.preventDefault(); }
+            if (key === 'd') { keys.d = true; e.preventDefault(); }
+            
+            // Стрелки
+            if (e.key === 'ArrowUp') { keys.arrowup = true; e.preventDefault(); }
+            if (e.key === 'ArrowDown') { keys.arrowdown = true; e.preventDefault(); }
+            if (e.key === 'ArrowLeft') { keys.arrowleft = true; e.preventDefault(); }
+            if (e.key === 'ArrowRight') { keys.arrowright = true; e.preventDefault(); }
+            
+            if (e.key === ' ') { keys.space = true; e.preventDefault(); }
         });
 
         document.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();
-            if (key === 'w' || key === 's' || key === 'a' || key === 'd') {
-                keys[key] = false;
-                e.preventDefault();
-            }
-            if (e.key === ' ') {
-                keys.space = false;
-                e.preventDefault();
-            }
+            
+            if (key === 'w') { keys.w = false; e.preventDefault(); }
+            if (key === 's') { keys.s = false; e.preventDefault(); }
+            if (key === 'a') { keys.a = false; e.preventDefault(); }
+            if (key === 'd') { keys.d = false; e.preventDefault(); }
+            
+            if (e.key === 'ArrowUp') { keys.arrowup = false; e.preventDefault(); }
+            if (e.key === 'ArrowDown') { keys.arrowdown = false; e.preventDefault(); }
+            if (e.key === 'ArrowLeft') { keys.arrowleft = false; e.preventDefault(); }
+            if (e.key === 'ArrowRight') { keys.arrowright = false; e.preventDefault(); }
+            
+            if (e.key === ' ') { keys.space = false; e.preventDefault(); }
         });
 
         function updateCar() {
@@ -486,16 +616,19 @@
             let acceleration = 0;
             let turn = 0;
 
-            if (keys.w) {
+            // W или стрелка вверх = вперёд
+            if (keys.w || keys.arrowup) {
                 acceleration = ENGINE_FORCE;
             }
             
-            if (keys.s) {
+            // S или стрелка вниз = назад
+            if (keys.s || keys.arrowdown) {
                 acceleration = -REVERSE_FORCE;
             }
 
-            if (keys.a) turn = TURN_SPEED;
-            if (keys.d) turn = -TURN_SPEED;
+            // A/D и стрелки для поворота
+            if (keys.a || keys.arrowleft) turn = TURN_SPEED;
+            if (keys.d || keys.arrowright) turn = -TURN_SPEED;
 
             if (Math.abs(velocity.length()) > 0.005) {
                 carState.rotation += turn;
@@ -517,7 +650,7 @@
 
             position.add(velocity);
 
-            const BOUNDARY = 45;
+            const BOUNDARY = 18;
             if (Math.abs(position.x) > BOUNDARY) {
                 position.x = Math.sign(position.x) * BOUNDARY;
                 velocity.x = 0;
@@ -528,7 +661,11 @@
             }
 
             currentCar.position.copy(position);
-            currentCar.rotation.y = rotation;
+            
+            // Учитываем начальный поворот модели
+            const modelInfo = modelsList.find(m => m.id === currentModelId);
+            const baseRotation = modelInfo ? modelInfo.rotation || 0 : 0;
+            currentCar.rotation.y = rotation + baseRotation;
 
             if (Math.abs(turn) > 0.001 && velocity.length() > 0.05) {
                 const tilt = -turn * velocity.length() * 0.5;
@@ -598,10 +735,9 @@
         }
         animate();
 
-        console.log('🚗 Симулятор запущен!');
+        console.log('🚗 Городской симулятор запущен!');
         console.log('📍 Спавн в центре (0, 0, 0)');
-        console.log('📖 Управление: W-вперёд, S-назад, A/D-руль, Пробел-ручник');
-        console.log('🔄 Кнопка справа переключает машины');
+        console.log('📖 Управление: W/↑-вперёд, S/↓-назад, A/←, D/→-руль, Пробел-ручник');
     </script>
 </body>
 </html>
