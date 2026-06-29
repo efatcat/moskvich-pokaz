@@ -212,8 +212,8 @@
             <span class="credit">© own.guest · CC BY</span>
         </button>
         <button class="car-btn" data-car="mercedes">
-            <span class="emoji">🚙</span> Merci Vagen
-            <span class="credit">© Lexyc16 · CC BY</span>
+            <span class="emoji">🚙</span> Tantoya Korova
+            <span class="credit">© danieljorge435 · CC BY</span>
         </button>
         <button class="car-btn" data-car="toyota">
             <span class="emoji">🚗</span> Tantoya Parmezan
@@ -273,12 +273,12 @@
         document.body.appendChild(renderer.domElement);
 
         // --------------------------------------------------------------
-        // 2. ОСВЕЩЕНИЕ (уменьшено качество теней для производительности)
+        // 2. ОСВЕЩЕНИЕ
         // --------------------------------------------------------------
         const sunLight = new THREE.DirectionalLight(0xffeedd, 2.5);
         sunLight.position.set(10, 15, 8);
         sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 2048; // было 4096
+        sunLight.shadow.mapSize.width = 2048;
         sunLight.shadow.mapSize.height = 2048;
         sunLight.shadow.camera.near = 0.1;
         sunLight.shadow.camera.far = 60;
@@ -407,16 +407,16 @@
             },
             { 
                 id: 'mercedes', 
-                name: '🚙 Merci Vagen', 
+                name: '🚙 Tantoya Korova', 
                 file: 'gelik.glb', 
                 rotation: 0,
-                credit: '"Mercedes Benz G-class W263" (https://skfb.ly/6SHrP) by Lexyc16 is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/)'
+                credit: '"Toyota Corola" (https://skfb.ly/6RHQA) by danieljorge435 is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/)'
             },
             { 
                 id: 'toyota', 
                 name: '🚗 Tantoya Parmezan', 
                 file: 'toyota_tezzo.glb', 
-                rotation: Math.PI / 2, // Поворот на 90° вправо
+                rotation: Math.PI, // 180° от текущего положения
                 credit: '"Tozzo \'98 - Low poly model" (https://skfb.ly/pB6Xs) by Daniel Zhabotinsky is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/)'
             }
         ];
@@ -550,7 +550,6 @@
                 carState.velocity.set(0, 0, 0);
                 carState.rotation = 0;
                 currentCar.position.set(0, 0, 0);
-                // Поворот модели уже задан при загрузке, но при сбросе нужно учесть базовый поворот
                 currentCar.rotation.y = modelInfo.rotation || 0;
             });
         });
